@@ -1,4 +1,4 @@
-# Coffee Machine (no classes)
+# Coffee Machine
 # Author: Jesus Vargas Pacheco
 
 from typing import Dict, Tuple
