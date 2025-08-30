@@ -1,15 +1,16 @@
 # Coffee Machine
-# Author: Jesus Vargas Pacheco
+# Authors: Jesus Vargas Pacheco,Josue Godoy Orozco, Eduardo Nestor Perez Davalos
 
 from typing import Dict, Tuple
 import os
-
+#Declaracion de los tipos de bebidas posibles y sus atributos
 RECIPES: Dict[str, Dict[str, int]] = {
     "espresso":   {"water": 250, "milk": 0,   "beans": 16, "price": 4},
     "latte":      {"water": 350, "milk": 75,  "beans": 20, "price": 7},
     "cappuccino": {"water": 200, "milk": 100, "beans": 12, "price": 6},
 }
 
+#Declaracion del maximo de los atributos
 MAX_CAPACITY = {
     "water": 2500,
     "milk": 1000,
@@ -103,6 +104,17 @@ def show_data(st: Dict[str, int]) -> str:
     ]
     return "\n".join(lines)
 
+def generate_receipt(drink: str, paid: float, change: float) -> str:
+    price = RECIPES[drink]["price"]
+    return f"""
+=== RECIBO DE COMPRA ===
+Café: {drink.capitalize()}
+Precio: ${price}
+Pagado: ${paid:.2f}
+Cambio: ${change:.2f}
+¡Gracias por su compra!
+========================
+"""
 # Menú de opciones
 def menu_text() -> str:
     return (
@@ -155,7 +167,14 @@ def action_make_coffee(st: Dict[str, int]) -> None:
     record_sale(drink, st)
     print(f"Preparando {drink.capitalize()}... ¡Listo!")
     if change > 0:
+        donate_change = input(f"Su cambio es ${change:.2f}. ¿Desea donarlo a caridad? (s/n): ").lower()
+    if donate_change == 's':
+        st["donated"] += change
+        print(f"¡Gracias por donar ${change:.2f} a caridad!")
+        change = 0
+    else:
         print(f"Su cambio: ${change:.2f}")
+    print(generate_receipt(drink, paid, change))
 
 # Acción: Rellenar máquina
 def action_fill_machine(st: Dict[str, int]) -> None:
