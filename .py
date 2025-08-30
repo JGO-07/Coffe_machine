@@ -77,4 +77,23 @@ def clamp_fill(st: Dict[str, int], to_fill: Dict[str, int]) -> Dict[str, int]:
         st[k] += add
     return added
 
-
+# Funcion de mostrar datos
+def show_data(st: Dict[str, int]) -> str:
+    total_sales = (st["sold_espresso"] * RECIPES["espresso"]["price"] +
+                   st["sold_latte"] * RECIPES["latte"]["price"] +
+                   st["sold_cappuccino"] * RECIPES["cappuccino"]["price"])
+    lines = [
+        "=== ESTADO DE LA MÁQUINA ===",
+        f"Agua: {st['water']} / {MAX_CAPACITY['water']} ml",
+        f"Leche: {st['milk']} / {MAX_CAPACITY['milk']} ml",
+        f"Café molido (beans): {st['beans']} / {MAX_CAPACITY['beans']} g",
+        f"Vasos: {st['cups']} / {MAX_CAPACITY['cups']} u",
+        f"Dinero en máquina: ${st['money']}",
+        "--- Ventas ---",
+        f"Espresso: {st['sold_espresso']}",
+        f"Latte: {st['sold_latte']}",
+        f"Cappuccino: {st['sold_cappuccino']}",
+        f"Ingresos por ventas (histórico): ${total_sales}",
+        f"Retirado: ${st['withdrawn_total']}   Donado: ${st['donated']}",
+    ]
+    return "\n".join(lines)
