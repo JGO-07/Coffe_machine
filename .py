@@ -33,6 +33,7 @@ state = {
 
 # Helpers (funciones puras)
 
+# Comprobar si se puede hacer la bebida
 def can_make(drink: str, st: Dict[str, int]) -> Tuple[bool, str]:
     """Check if there are enough resources to make the drink."""
     if drink not in RECIPES:
@@ -47,6 +48,7 @@ def can_make(drink: str, st: Dict[str, int]) -> Tuple[bool, str]:
         return False, "Faltan recursos: " + ", ".join(lacking)
     return True, ""
 
+# Gastar recursos
 def spend_resources(drink: str, st: Dict[str, int]) -> None:
     """Deduct the resources for a given drink (mutates st)."""
     req = RECIPES[drink]
@@ -55,6 +57,7 @@ def spend_resources(drink: str, st: Dict[str, int]) -> None:
     st["beans"] -= req["beans"]
     st["cups"]  -= 1
 
+# Registrar venta
 def record_sale(drink: str, st: Dict[str, int]) -> None:
     if drink == "espresso":
         st["sold_espresso"] += 1
@@ -63,9 +66,11 @@ def record_sale(drink: str, st: Dict[str, int]) -> None:
     elif drink == "cappuccino":
         st["sold_cappuccino"] += 1
 
+# Comprobar si está lleno
 def is_full(st: Dict[str, int]) -> bool:
     return all(st[k] >= MAX_CAPACITY[k] for k in ("water","milk","beans","cups"))
 
+# Limitar el llenado
 def clamp_fill(st: Dict[str, int], to_fill: Dict[str, int]) -> Dict[str, int]:
     """Return the actual amounts that can be added without exceeding capacity."""
     added = {}
@@ -98,6 +103,7 @@ def show_data(st: Dict[str, int]) -> str:
     ]
     return "\n".join(lines)
 
+# Menú de opciones
 def menu_text() -> str:
     return (
         "\n=== MENÚ ===\n"
@@ -109,14 +115,14 @@ def menu_text() -> str:
         "Seleccione opción: "
     )
 
-# ------------------------------
+
 # Limpiar pantalla
-# ------------------------------
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
 # Acciones
 
+# Acción: Hacer café
 def action_make_coffee(st: Dict[str, int]) -> None:
     print("\n--- Hacer café ---")
     print("Tipos: 1) Espresso ($4)  2) Latte ($7)  3) Cappuccino ($6)  4) Cancelar")
@@ -151,6 +157,7 @@ def action_make_coffee(st: Dict[str, int]) -> None:
     if change > 0:
         print(f"Su cambio: ${change:.2f}")
 
+# Acción: Rellenar máquina
 def action_fill_machine(st: Dict[str, int]) -> None:
     print("\n--- Rellenar máquina ---")
     if is_full(st):
@@ -167,6 +174,8 @@ def action_fill_machine(st: Dict[str, int]) -> None:
     added = clamp_fill(st, {"water": add_water, "milk": add_milk, "beans": add_beans, "cups": add_cups})
     print("Cargado (sin exceder capacidad):", added)
 
+
+# Acción: Retirar dinero / Donar
 def action_withdraw_or_donate(st: Dict[str, int]) -> None:
     print("\n--- Caja ---")
     print(f"Dinero disponible en máquina: ${st['money']}")
