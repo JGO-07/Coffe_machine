@@ -122,15 +122,17 @@ Cambio: ${change:.2f}
 ¡Gracias por su compra!
 ========================
 """
-# Menú de opciones
+# ======================
+# MENUS DE CADA MODO
+# ======================
+
 def main_menu_text() -> str:
+    """Menú principal para elegir modo."""
     return (
-        "\n=== MENÚ ===\n"
-        "1) Hacer café\n"
-        "2) Rellenar máquina\n"
-        "3) Retirar dinero / Donar a caridad\n"
-        "4) Mostrar datos\n"
-        "5) Salir\n"
+        "\n=== COFFEE MACHINE ===\n"
+        "1) Modo Usuario\n"
+        "2) Modo Administrador\n"
+        "3) Salir\n"
         "Seleccione opción: "
     )
 
@@ -301,12 +303,38 @@ def change_admin_credentials() -> None:
     else:
         print("Cambio de credenciales cancelado.")
 
-# Main loop
+# ======================
+# LOOPS DE CADA MODO
+# ======================
 
-def main() -> None:
-    print("Bienvenido a Coffee Machine\n")
+#Modo de usuario (comprar cafe y cerrar menu)
+def user_mode() -> None:
+    print("Modo Usuario")
+    
     while True:
-        choice = input(main_menu_text()).strip()
+        choice = input(user_menu_text()).strip()
+        
+        if choice == "1":
+            clear_screen()
+            action_make_coffee(state)
+        elif choice == "2":
+            clear_screen()
+            print("Regresando al menú principal...")
+            break
+        else:
+            clear_screen()
+            print("Opción no válida. Intente de nuevo.")
+
+#Modo de admin con todas las funciones
+def admin_mode() -> None:
+    if not admin_login():
+        return  # Si falla el login, regresar al menú principal
+    
+    print("Modo Administrador")
+    
+    while True:
+        choice = input(admin_menu_text()).strip()
+        
         if choice == "1":
             clear_screen()
             action_make_coffee(state)
@@ -320,6 +348,33 @@ def main() -> None:
             clear_screen()
             action_show_data(state)
         elif choice == "5":
+            clear_screen()
+            change_admin_credentials()
+        elif choice == "6":
+            clear_screen()
+            print("Saliendo del modo administrador...")
+            break
+        else:
+            clear_screen()
+            print("Opción no válida. Intente de nuevo.")
+
+# ======================
+# FUNCIÓN MAIN
+# ======================
+#Funcion para elegir si es un usuario o un admin
+def main() -> None:
+    print("Bienvenido a Coffee Machine")
+    
+    while True:
+        choice = input(main_menu_text()).strip()
+        
+        if choice == "1":
+            clear_screen()
+            user_mode()
+        elif choice == "2":
+            clear_screen()
+            admin_mode()
+        elif choice == "3":
             clear_screen()
             print("Sesión finalizada. ¡Hasta luego!")
             break
