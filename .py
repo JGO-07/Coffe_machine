@@ -1,16 +1,17 @@
-# Coffee Machine
-# Authors: Jesus Vargas Pacheco,Josue Godoy Orozco, Eduardo Nestor Perez Davalos
+# Coffee Machine 
+# Authors: Jesus Vargas Pacheco, Josue Godoy Orozco, Eduardo Nestor Perez Davalos
 
 from typing import Dict, Tuple
 import os
-#Declaracion de los tipos de bebidas posibles y sus atributos
+
+# Declaración de los tipos de bebidas posibles y sus atributos
 RECIPES: Dict[str, Dict[str, int]] = {
     "espresso":   {"water": 250, "milk": 0,   "beans": 16, "price": 4},
     "latte":      {"water": 350, "milk": 75,  "beans": 20, "price": 7},
     "cappuccino": {"water": 200, "milk": 100, "beans": 12, "price": 6},
 }
 
-#Declaracion del maximo de los atributos
+# Declaración del máximo de los atributos
 MAX_CAPACITY = {
     "water": 2500,
     "milk": 1000,
@@ -24,7 +25,8 @@ state = {
     "milk": MAX_CAPACITY["milk"],
     "beans": MAX_CAPACITY["beans"],
     "cups": MAX_CAPACITY["cups"],
-    "money": 0,            # dinero actualmente en la máquina
+    "money": 0,            # dinero actualmente en la máquina (caja)
+    "wallet": 0.0,         # <<< saldo del usuario (cartera)
     "sold_espresso": 0,
     "sold_latte": 0,
     "sold_cappuccino": 0,
@@ -32,18 +34,16 @@ state = {
     "withdrawn_total": 0,  # retiros totales
 }
 
-#Configuracion inicial del Admin
+# Configuración inicial del Admin
 admin_credentials = {
     "username": "admin",
     "password": "1234"
 }
 
-ADMIN_MODE = False 
-# Helpers (funciones puras)
+ADMIN_MODE = False
 
-# Comprobar si se puede hacer la bebida
+# Helpers
 def can_make(drink: str, st: Dict[str, int]) -> Tuple[bool, str]:
-    """Check if there are enough resources to make the drink."""
     if drink not in RECIPES:
         return False, f"Bebida desconocida: {drink}"
     req = RECIPES[drink]
@@ -56,16 +56,13 @@ def can_make(drink: str, st: Dict[str, int]) -> Tuple[bool, str]:
         return False, "Faltan recursos: " + ", ".join(lacking)
     return True, ""
 
-# Gastar recursos
 def spend_resources(drink: str, st: Dict[str, int]) -> None:
-    """Deduct the resources for a given drink (mutates st)."""
     req = RECIPES[drink]
     st["water"] -= req["water"]
     st["milk"]  -= req["milk"]
     st["beans"] -= req["beans"]
     st["cups"]  -= 1
 
-# Registrar venta
 def record_sale(drink: str, st: Dict[str, int]) -> None:
     if drink == "espresso":
         st["sold_espresso"] += 1
@@ -74,13 +71,10 @@ def record_sale(drink: str, st: Dict[str, int]) -> None:
     elif drink == "cappuccino":
         st["sold_cappuccino"] += 1
 
-# Comprobar si está lleno
 def is_full(st: Dict[str, int]) -> bool:
     return all(st[k] >= MAX_CAPACITY[k] for k in ("water","milk","beans","cups"))
 
-# Limitar el llenado
 def clamp_fill(st: Dict[str, int], to_fill: Dict[str, int]) -> Dict[str, int]:
-    """Return the actual amounts that can be added without exceeding capacity."""
     added = {}
     for k in ("water","milk","beans","cups"):
         current = st[k]
@@ -90,7 +84,6 @@ def clamp_fill(st: Dict[str, int], to_fill: Dict[str, int]) -> Dict[str, int]:
         st[k] += add
     return added
 
-# Funcion de mostrar datos
 def show_data(st: Dict[str, int]) -> str:
     total_sales = (st["sold_espresso"] * RECIPES["espresso"]["price"] +
                    st["sold_latte"] * RECIPES["latte"]["price"] +
@@ -101,7 +94,8 @@ def show_data(st: Dict[str, int]) -> str:
         f"Leche: {st['milk']} / {MAX_CAPACITY['milk']} ml",
         f"Café molido (beans): {st['beans']} / {MAX_CAPACITY['beans']} g",
         f"Vasos: {st['cups']} / {MAX_CAPACITY['cups']} u",
-        f"Dinero en máquina: ${st['money']}",
+        f"Dinero en máquina (caja): ${st['money']}",
+        f"Saldo de cartera del usuario: ${st['wallet']:.2f}",
         "--- Ventas ---",
         f"Espresso: {st['sold_espresso']}",
         f"Latte: {st['sold_latte']}",
@@ -122,12 +116,12 @@ Cambio: ${change:.2f}
 ¡Gracias por su compra!
 ========================
 """
+
 # ======================
-# MENUS DE CADA MODO
+# MENÚS
 # ======================
 
 def main_menu_text() -> str:
-    """Menú principal para elegir modo."""
     return (
         "\n=== COFFEE MACHINE ===\n"
         "1) Modo Usuario\n"
@@ -136,17 +130,18 @@ def main_menu_text() -> str:
         "Seleccione opción: "
     )
 
-def user_menu_text() -> str:
-    """Menú para el modo usuario."""
+def user_menu_text(st: Dict[str, int]) -> str:
+    # Se muestra el saldo actual para comodidad
     return (
-        "\n=== MODO USUARIO ===\n"
-        "1) Hacer café\n"
-        "2) Regresar al menú principal\n"
+        f"\n=== MODO USUARIO ===   (Saldo: ${st['wallet']:.2f})\n"
+        "1) Insertar dinero en cartera\n"
+        "2) Hacer café\n"
+        "3) Reembolsar saldo de cartera\n"
+        "4) Regresar al menú principal\n"
         "Seleccione opción: "
     )
 
 def admin_menu_text() -> str:
-    """Menú para el modo administrador."""
     return (
         "\n=== MODO ADMINISTRADOR ===\n"
         "1) Hacer café\n"
@@ -158,13 +153,33 @@ def admin_menu_text() -> str:
         "Seleccione opción: "
     )
 
-# Limpiar pantalla
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# Acciones
+# ======================
+# ACCIONES
+# ======================
 
-# Acción: Hacer café
+def action_insert_money(st: Dict[str, int]) -> None:
+    print("\n--- Insertar dinero ---")
+    try:
+        amount = float(input("Monto a ingresar ($): ").strip())
+        if amount <= 0:
+            print("Monto inválido.")
+            return
+        st["wallet"] = round(st["wallet"] + amount, 2)
+        print(f"Saldo actualizado: ${st['wallet']:.2f}")
+    except ValueError:
+        print("Entrada inválida.")
+
+def action_refund_wallet(st: Dict[str, int]) -> None:
+    print("\n--- Reembolsar saldo ---")
+    if st["wallet"] <= 0:
+        print("No hay saldo en la cartera.")
+        return
+    print(f"Reembolsando ${st['wallet']:.2f}.")
+    st["wallet"] = 0.0
+
 def action_make_coffee(st: Dict[str, int]) -> None:
     print("\n--- Hacer café ---")
     print("Tipos: 1) Espresso ($4)  2) Latte ($7)  3) Cappuccino ($6)  4) Cancelar")
@@ -177,36 +192,37 @@ def action_make_coffee(st: Dict[str, int]) -> None:
     if not drink:
         print("Opción inválida.")
         return
+
     ok, msg = can_make(drink, st)
     if not ok:
         print("No se puede preparar:", msg)
         return
+
     price = RECIPES[drink]["price"]
-    print(f"Precio: ${price}")
-    try:
-        paid = float(input("Inserte dinero ($): ").strip())
-    except ValueError:
-        print("Entrada inválida; cancelando.")
+    if st["wallet"] < price:
+        faltan = price - st["wallet"]
+        print(f"Precio: ${price}. Saldo en cartera: ${st['wallet']:.2f}.")
+        print(f"Saldo insuficiente. Faltan ${faltan:.2f}. Inserte más dinero desde el menú de usuario.")
         return
-    if paid < price:
-        print(f"Dinero insuficiente. Reembolsando ${paid:.2f}.")
-        return
-    change = round(paid - price, 2)
+
+    # Cobro desde la cartera
+    st["wallet"] = round(st["wallet"] - price, 2)
     spend_resources(drink, st)
     st["money"] += price
     record_sale(drink, st)
-    print(f"Preparando {drink.capitalize()}... ¡Listo!")
-    if change > 0:
-        donate_change = input(f"Su cambio es ${change:.2f}. ¿Desea donarlo a caridad? (s/n): ").lower()
-    if donate_change == 's':
-        st["donated"] += change
-        print(f"¡Gracias por donar ${change:.2f} a caridad!")
-        change = 0
-    else:
-        print(f"Su cambio: ${change:.2f}")
-    print(generate_receipt(drink, paid, change))
 
-# Acción: Rellenar máquina
+    print(f"Preparando {drink.capitalize()}... ¡Listo!")
+    print(generate_receipt(drink, price, 0.0))
+
+    # Ofrecer reembolsar lo que aún quede en la cartera (opcional)
+    if st["wallet"] > 0:
+        op = input(f"Quedan ${st['wallet']:.2f} en su cartera. ¿Desea reembolsarlos ahora? (s/n): ").lower()
+        if op == "s":
+            print(f"Reembolsando ${st['wallet']:.2f}.")
+            st["wallet"] = 0.0
+        else:
+            print("El saldo permanece en su cartera para futuras compras.")
+
 def action_fill_machine(st: Dict[str, int]) -> None:
     print("\n--- Rellenar máquina ---")
     if is_full(st):
@@ -223,8 +239,6 @@ def action_fill_machine(st: Dict[str, int]) -> None:
     added = clamp_fill(st, {"water": add_water, "milk": add_milk, "beans": add_beans, "cups": add_cups})
     print("Cargado (sin exceder capacidad):", added)
 
-
-# Acción: Retirar dinero / Donar
 def action_withdraw_or_donate(st: Dict[str, int]) -> None:
     print("\n--- Caja ---")
     print(f"Dinero disponible en máquina: ${st['money']}")
@@ -245,19 +259,20 @@ def action_show_data(st: Dict[str, int]) -> None:
     print()
     print(show_data(st))
 
-#Funcion para hacer log in como administrador
+# ======================
+# LOGIN Y CREDENCIALES ADMIN
+# ======================
+
 def admin_login() -> bool:
     print("\n=== LOGIN ADMINISTRADOR ===")
     max_attempts = 3
-    
     for attempt in range(max_attempts):
         try:
             username = input("Usuario: ").strip()
             password = input("Contraseña: ").strip()
-            
             if username == admin_credentials["username"] and password == admin_credentials["password"]:
                 clear_screen()
-                print("Login exitoso. Bienvenido Al modo administrador")
+                print("Login exitoso. Bienvenido al modo administrador")
                 return True
             else:
                 remaining = max_attempts - attempt - 1
@@ -265,36 +280,25 @@ def admin_login() -> bool:
                     print(f"Contraseña o usuario incorrecto. Te quedan {remaining} intentos.")
                 else:
                     print("Demasiados intentos fallidos. Regresando al menú principal.")
-        
         except KeyboardInterrupt:
             print("\n Login cancelado por el usuario.")
             return False
-    
     return False
 
-#Funcion para modificar nombre y contraseñas del admin
 def change_admin_credentials() -> None:
-    """Permite cambiar las credenciales del administrador."""
     print("\n=== CAMBIAR CREDENCIALES ===")
     print("Confirme su identidad actual:")
-    
     current_user = input("Usuario actual: ").strip()
     current_pass = input("Contraseña actual: ").strip()
-    
     if current_user != admin_credentials["username"] or current_pass != admin_credentials["password"]:
         print("Credenciales actuales incorrectas. Operación cancelada.")
         return
-    
-    # Solicitar nuevas credenciales
     print("\n Ingrese las nuevas credenciales:")
     new_username = input("Nuevo usuario: ").strip()
     new_password = input("Nueva contraseña: ").strip()
-    
-    # Confirmar cambio
     if new_username == "" or new_password == "":
         print("Las credenciales no pueden estar vacías. Operación cancelada.")
         return
-    
     confirm = input(f"¿Confirmar cambio de usuario a '{new_username}'? (s/n): ").lower()
     if confirm == 's':
         admin_credentials["username"] = new_username
@@ -304,20 +308,23 @@ def change_admin_credentials() -> None:
         print("Cambio de credenciales cancelado.")
 
 # ======================
-# LOOPS DE CADA MODO
+# LOOPS
 # ======================
 
-#Modo de usuario (comprar cafe y cerrar menu)
 def user_mode() -> None:
     print("Modo Usuario")
-    
     while True:
-        choice = input(user_menu_text()).strip()
-        
+        choice = input(user_menu_text(state)).strip()
         if choice == "1":
             clear_screen()
-            action_make_coffee(state)
+            action_insert_money(state)
         elif choice == "2":
+            clear_screen()
+            action_make_coffee(state)
+        elif choice == "3":
+            clear_screen()
+            action_refund_wallet(state)
+        elif choice == "4":
             clear_screen()
             print("Regresando al menú principal...")
             break
@@ -325,16 +332,12 @@ def user_mode() -> None:
             clear_screen()
             print("Opción no válida. Intente de nuevo.")
 
-#Modo de admin con todas las funciones
 def admin_mode() -> None:
     if not admin_login():
-        return  # Si falla el login, regresar al menú principal
-    
+        return
     print("Modo Administrador")
-    
     while True:
         choice = input(admin_menu_text()).strip()
-        
         if choice == "1":
             clear_screen()
             action_make_coffee(state)
@@ -359,15 +362,13 @@ def admin_mode() -> None:
             print("Opción no válida. Intente de nuevo.")
 
 # ======================
-# FUNCIÓN MAIN
+# MAIN
 # ======================
-#Funcion para elegir si es un usuario o un admin
+
 def main() -> None:
     print("Bienvenido a Coffee Machine")
-    
     while True:
         choice = input(main_menu_text()).strip()
-        
         if choice == "1":
             clear_screen()
             user_mode()
