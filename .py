@@ -1,6 +1,7 @@
 # Coffee Machine 
 # Authors: Jesus Vargas Pacheco, Josue Godoy Orozco, Eduardo Nestor Perez Davalos
 
+# Librerias para tipado y manejo de sistema
 from typing import Dict, Tuple
 import os
 
@@ -56,6 +57,7 @@ def can_make(drink: str, st: Dict[str, int]) -> Tuple[bool, str]:
         return False, "Faltan recursos: " + ", ".join(lacking)
     return True, ""
 
+# Gastar recursos
 def spend_resources(drink: str, st: Dict[str, int]) -> None:
     req = RECIPES[drink]
     st["water"] -= req["water"]
@@ -63,6 +65,7 @@ def spend_resources(drink: str, st: Dict[str, int]) -> None:
     st["beans"] -= req["beans"]
     st["cups"]  -= 1
 
+# Registro de ventas
 def record_sale(drink: str, st: Dict[str, int]) -> None:
     if drink == "espresso":
         st["sold_espresso"] += 1
@@ -71,9 +74,11 @@ def record_sale(drink: str, st: Dict[str, int]) -> None:
     elif drink == "cappuccino":
         st["sold_cappuccino"] += 1
 
+# Verificar si la máquina está llena
 def is_full(st: Dict[str, int]) -> bool:
     return all(st[k] >= MAX_CAPACITY[k] for k in ("water","milk","beans","cups"))
 
+# Limitar el llenado de los recursos
 def clamp_fill(st: Dict[str, int], to_fill: Dict[str, int]) -> Dict[str, int]:
     added = {}
     for k in ("water","milk","beans","cups"):
@@ -84,6 +89,7 @@ def clamp_fill(st: Dict[str, int], to_fill: Dict[str, int]) -> Dict[str, int]:
         st[k] += add
     return added
 
+# Mostrar datos de la máquina
 def show_data(st: Dict[str, int]) -> str:
     total_sales = (st["sold_espresso"] * RECIPES["espresso"]["price"] +
                    st["sold_latte"] * RECIPES["latte"]["price"] +
@@ -105,6 +111,7 @@ def show_data(st: Dict[str, int]) -> str:
     ]
     return "\n".join(lines)
 
+# Generar recibo de compra
 def generate_receipt(drink: str, paid: float, change: float) -> str:
     price = RECIPES[drink]["price"]
     return f"""
@@ -117,10 +124,9 @@ Cambio: ${change:.2f}
 ========================
 """
 
-# ======================
 # MENÚS
-# ======================
 
+# Menú principal
 def main_menu_text() -> str:
     return (
         "\n=== COFFEE MACHINE ===\n"
@@ -130,6 +136,7 @@ def main_menu_text() -> str:
         "Seleccione opción: "
     )
 
+# Menú de usuario
 def user_menu_text(st: Dict[str, int]) -> str:
     # Se muestra el saldo actual para comodidad
     return (
@@ -141,6 +148,7 @@ def user_menu_text(st: Dict[str, int]) -> str:
         "Seleccione opción: "
     )
 
+# Menú de administrador
 def admin_menu_text() -> str:
     return (
         "\n=== MODO ADMINISTRADOR ===\n"
@@ -153,13 +161,13 @@ def admin_menu_text() -> str:
         "Seleccione opción: "
     )
 
+# Limpiar pantalla
 def clear_screen():
     os.system('cls' if os.name == 'nt' else 'clear')
 
-# ======================
 # ACCIONES
-# ======================
 
+# Insertar dinero
 def action_insert_money(st: Dict[str, int]) -> None:
     print("\n--- Insertar dinero ---")
     try:
@@ -172,6 +180,7 @@ def action_insert_money(st: Dict[str, int]) -> None:
     except ValueError:
         print("Entrada inválida.")
 
+# Reembolsar saldo de cartera
 def action_refund_wallet(st: Dict[str, int]) -> None:
     print("\n--- Reembolsar saldo ---")
     if st["wallet"] <= 0:
@@ -180,6 +189,7 @@ def action_refund_wallet(st: Dict[str, int]) -> None:
     print(f"Reembolsando ${st['wallet']:.2f}.")
     st["wallet"] = 0.0
 
+# Hacer café
 def action_make_coffee(st: Dict[str, int]) -> None:
     print("\n--- Hacer café ---")
     print("Tipos: 1) Espresso ($4)  2) Latte ($7)  3) Cappuccino ($6)  4) Cancelar")
@@ -223,6 +233,7 @@ def action_make_coffee(st: Dict[str, int]) -> None:
         else:
             print("El saldo permanece en su cartera para futuras compras.")
 
+# Rellenar máquina
 def action_fill_machine(st: Dict[str, int]) -> None:
     print("\n--- Rellenar máquina ---")
     if is_full(st):
@@ -239,6 +250,7 @@ def action_fill_machine(st: Dict[str, int]) -> None:
     added = clamp_fill(st, {"water": add_water, "milk": add_milk, "beans": add_beans, "cups": add_cups})
     print("Cargado (sin exceder capacidad):", added)
 
+# Retirar o donar dinero
 def action_withdraw_or_donate(st: Dict[str, int]) -> None:
     print("\n--- Caja ---")
     print(f"Dinero disponible en máquina: ${st['money']}")
@@ -255,14 +267,14 @@ def action_withdraw_or_donate(st: Dict[str, int]) -> None:
     else:
         print("Operación cancelada.")
 
+# Mostrar datos de la máquina
 def action_show_data(st: Dict[str, int]) -> None:
     print()
     print(show_data(st))
 
-# ======================
 # LOGIN Y CREDENCIALES ADMIN
-# ======================
 
+# Función para iniciar sesión como administrador
 def admin_login() -> bool:
     print("\n=== LOGIN ADMINISTRADOR ===")
     max_attempts = 3
@@ -285,6 +297,7 @@ def admin_login() -> bool:
             return False
     return False
 
+# Cambiar credenciales de administrador
 def change_admin_credentials() -> None:
     print("\n=== CAMBIAR CREDENCIALES ===")
     print("Confirme su identidad actual:")
@@ -307,10 +320,9 @@ def change_admin_credentials() -> None:
     else:
         print("Cambio de credenciales cancelado.")
 
-# ======================
 # LOOPS
-# ======================
 
+# Modo Usuario
 def user_mode() -> None:
     print("Modo Usuario")
     while True:
@@ -332,6 +344,7 @@ def user_mode() -> None:
             clear_screen()
             print("Opción no válida. Intente de nuevo.")
 
+# Modo Administrador
 def admin_mode() -> None:
     if not admin_login():
         return
@@ -361,10 +374,9 @@ def admin_mode() -> None:
             clear_screen()
             print("Opción no válida. Intente de nuevo.")
 
-# ======================
 # MAIN
-# ======================
 
+# Función principal
 def main() -> None:
     print("Bienvenido a Coffee Machine")
     while True:
