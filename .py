@@ -32,6 +32,13 @@ state = {
     "withdrawn_total": 0,  # retiros totales
 }
 
+#Configuracion inicial del Admin
+admin_credentials = {
+    "username": "admin",
+    "password": "1234"
+}
+
+ADMIN_MODE = False 
 # Helpers (funciones puras)
 
 # Comprobar si se puede hacer la bebida
@@ -116,7 +123,7 @@ Cambio: ${change:.2f}
 ========================
 """
 # Menú de opciones
-def menu_text() -> str:
+def main_menu_text() -> str:
     return (
         "\n=== MENÚ ===\n"
         "1) Hacer café\n"
@@ -127,6 +134,27 @@ def menu_text() -> str:
         "Seleccione opción: "
     )
 
+def user_menu_text() -> str:
+    """Menú para el modo usuario."""
+    return (
+        "\n=== MODO USUARIO ===\n"
+        "1) Hacer café\n"
+        "2) Regresar al menú principal\n"
+        "Seleccione opción: "
+    )
+
+def admin_menu_text() -> str:
+    """Menú para el modo administrador."""
+    return (
+        "\n=== MODO ADMINISTRADOR ===\n"
+        "1) Hacer café\n"
+        "2) Rellenar máquina\n"
+        "3) Retirar dinero / Donar a caridad\n"
+        "4) Mostrar datos\n"
+        "5) Cambiar credenciales\n"
+        "6) Regresar al menú principal\n"
+        "Seleccione opción: "
+    )
 
 # Limpiar pantalla
 def clear_screen():
@@ -215,12 +243,70 @@ def action_show_data(st: Dict[str, int]) -> None:
     print()
     print(show_data(st))
 
+#Funcion para hacer log in como administrador
+def admin_login() -> bool:
+    print("\n=== LOGIN ADMINISTRADOR ===")
+    max_attempts = 3
+    
+    for attempt in range(max_attempts):
+        try:
+            username = input("Usuario: ").strip()
+            password = input("Contraseña: ").strip()
+            
+            if username == admin_credentials["username"] and password == admin_credentials["password"]:
+                clear_screen()
+                print("Login exitoso. Bienvenido Al modo administrador")
+                return True
+            else:
+                remaining = max_attempts - attempt - 1
+                if remaining > 0:
+                    print(f"Contraseña o usuario incorrecto. Te quedan {remaining} intentos.")
+                else:
+                    print("Demasiados intentos fallidos. Regresando al menú principal.")
+        
+        except KeyboardInterrupt:
+            print("\n Login cancelado por el usuario.")
+            return False
+    
+    return False
+
+#Funcion para modificar nombre y contraseñas del admin
+def change_admin_credentials() -> None:
+    """Permite cambiar las credenciales del administrador."""
+    print("\n=== CAMBIAR CREDENCIALES ===")
+    print("Confirme su identidad actual:")
+    
+    current_user = input("Usuario actual: ").strip()
+    current_pass = input("Contraseña actual: ").strip()
+    
+    if current_user != admin_credentials["username"] or current_pass != admin_credentials["password"]:
+        print("Credenciales actuales incorrectas. Operación cancelada.")
+        return
+    
+    # Solicitar nuevas credenciales
+    print("\n Ingrese las nuevas credenciales:")
+    new_username = input("Nuevo usuario: ").strip()
+    new_password = input("Nueva contraseña: ").strip()
+    
+    # Confirmar cambio
+    if new_username == "" or new_password == "":
+        print("Las credenciales no pueden estar vacías. Operación cancelada.")
+        return
+    
+    confirm = input(f"¿Confirmar cambio de usuario a '{new_username}'? (s/n): ").lower()
+    if confirm == 's':
+        admin_credentials["username"] = new_username
+        admin_credentials["password"] = new_password
+        print("Credenciales actualizadas exitosamente.")
+    else:
+        print("Cambio de credenciales cancelado.")
+
 # Main loop
 
 def main() -> None:
     print("Bienvenido a Coffee Machine\n")
     while True:
-        choice = input(menu_text()).strip()
+        choice = input(main_menu_text()).strip()
         if choice == "1":
             clear_screen()
             action_make_coffee(state)
